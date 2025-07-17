@@ -2,8 +2,8 @@ name: Website Monitor
 
 on:
   schedule:
-    # 每30分钟运行一次
-    - cron: '*/30 * * * *'
+    # 每 3.5 小时运行一次（UTC 时间）
+    - cron: '30 */3 * * *'
   workflow_dispatch:
 
 jobs:
