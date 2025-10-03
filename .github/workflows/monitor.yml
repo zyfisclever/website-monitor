@@ -10,11 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true   # 保证后续 git push 可以用 GITHUB_TOKEN
+          ref: main                   # 确保在 main 分支操作（如果你用 master，就改成 master）
 
       - name: Download website
         run: curl -sL "https://kerrynotes.com/glados-redeem-code/" -o site.html
+        # ⬆️ 把 https://example.com 改成你要监控的网址
 
       - name: Calculate checksums
         run: |
@@ -28,7 +32,7 @@ jobs:
           if [ ! -f checksums.txt ]; then
             echo "No previous checksum file, creating..."
             cp new_checksums.txt checksums.txt
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "changed=true" >> $GITHUB_OUTPUT
           else
             if diff -q new_checksums.txt checksums.txt; then
               echo "No change"
@@ -48,16 +52,17 @@ jobs:
           git add checksums.txt
           git diff --cached --quiet || git commit -m "Update checksums [skip ci]"
           git push origin HEAD
+
       - name: Send mail if changed
         if: steps.compare.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
-          server_port: 465
-          username: zyfisclever@gmail.com
+          server_port: 456
+          username: zyfisclever@Gmail.com
           password: I like Minecraft!!!
           subject: "Website changed!"
-          to: "18394523109@163.com"
+          to: "your_email@example.com"
           from: "GitHub Monitor <${{ secrets.MAIL_USERNAME }}>"
           body: |
             The monitored website has changed!
