@@ -1,0 +1,66 @@
+name: Monitor Website
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # 每3小时
+  workflow_dispatch:         # 允许手动触发
+
+jobs:
+  check-website:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download website
+        run: curl -sL "https://kerrynotes.com/glados-redeem-code/" -o site.html
+
+      - name: Calculate checksums
+        run: |
+          sha1sum site.html | awk '{print $1}' > new_sha1.txt
+          sha256sum site.html | awk '{print $1}' > new_sha256.txt
+          cat new_sha1.txt new_sha256.txt > new_checksums.txt
+
+      - name: Compare with previous
+        id: compare
+        run: |
+          if [ ! -f checksums.txt ]; then
+            echo "No previous checksum file, creating..."
+            cp new_checksums.txt checksums.txt
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            if diff -q new_checksums.txt checksums.txt; then
+              echo "No change"
+              echo "changed=false" >> $GITHUB_OUTPUT
+            else
+              echo "Change detected!"
+              cp new_checksums.txt checksums.txt
+              echo "changed=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Commit updated checksums
+        if: steps.compare.outputs.changed == 'true'
+        run: |
+          git config user.name "zyfisclever"
+          git config user.email "zyfisclever@gmail.com"
+          git add checksums.txt
+          git commit -m "Update checksums [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Send mail if changed
+        if: steps.compare.outputs.changed == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: zyfisclever@gmail.com
+          password: I like Minecraft!!!
+          subject: "Website changed!"
+          to: "18394523109@163.com"
+          from: "GitHub Monitor <${{ secrets.MAIL_USERNAME }}>"
+          body: |
+            The monitored website has changed!
+            New SHA-1: $(cat new_sha1.txt)
+            New SHA-256: $(cat new_sha256.txt)
