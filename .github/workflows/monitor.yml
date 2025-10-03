@@ -43,12 +43,11 @@ jobs:
       - name: Commit updated checksums
         if: steps.compare.outputs.changed == 'true'
         run: |
-          git config user.name "zyfisclever"
-          git config user.email "zyfisclever@gmail.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add checksums.txt
-          git commit -m "Update checksums [skip ci]" || echo "No changes to commit"
-          git push
-
+          git diff --cached --quiet || git commit -m "Update checksums [skip ci]"
+          git push origin HEAD
       - name: Send mail if changed
         if: steps.compare.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v3
